@@ -1,0 +1,87 @@
+<config lang="json">
+{
+  "name": "Image Viewer",
+  "type": "window",
+  "tags": [],
+  "ui": "",
+  "version": "0.1.0",
+  "cover": "",
+  "description": "This is a demo plugin for displaying image",
+  "icon": "extension",
+  "inputs": null,
+  "outputs": null,
+  "api_version": "0.1.8",
+  "env": "",
+  "permissions": [],
+  "requirements": [],
+  "dependencies": []
+}
+</config>
+<script lang="javascript">
+// draw a base64 encoded image to the canvas
+const drawImage = (canvas, base64Image)=>{
+    return new Promise((resolve, reject)=>{
+        const img = new Image()
+        img.crossOrigin = "anonymous"
+        img.onload = function(){
+            const ctx = canvas.getContext("2d");
+            canvas.width = Math.min(this.width, 512);
+            canvas.height= Math.min(this.height, parseInt(512*this.height/this.width), 1024);
+            // draw the img into canvas
+            ctx.drawImage(this, 0, 0, canvas.width, canvas.height);
+            resolve(canvas);
+        }
+        img.onerror = reject;
+        img.src = base64Image;
+    })
+}
+
+// read the file and return as a base64 string
+const readImageFile = (file)=>{
+    return new Promise((resolve, reject)=>{
+        const U = window.URL || window.webkitURL;
+        // this works for safari
+        if(U.createObjectURL){
+            resolve(U.createObjectURL(file))
+        }
+        // fallback
+        else{
+            const fr = new FileReader();
+            // when image is loaded, set the src of the image where you want to display it
+            fr.onload = function(e) {
+                resolve(e.target.result)
+            };
+            fr.onerror = reject
+            // fill fr with image data
+            fr.readAsDataURL(file);
+        }
+    })
+}
+
+class ImJoyPlugin{
+    async setup(){
+         // Display image when a file is selected.
+        const fileInput = document.getElementById("file-input");
+        const canvas = document.getElementById("input-canvas");
+        fileInput.addEventListener("change", async ()=>{
+            const img = await readImageFile(fileInput.files[0]);
+            await drawImage(canvas, img);
+        }, true);
+        await api.log("plugin initialized")
+    }
+    async run(ctx){
+
+    }
+}
+api.export(new ImJoyPlugin())
+</script>
+<window>
+    <div>
+        <h1>Please open an image (jpg/png/gif)</h1>
+        <input  id="file-input" accept="image/*" capture="camera" type="file"/>
+        <canvas id="input-canvas" style="width: 100%; object-fit: cover;"></canvas>
+    </div>
+</window>
+<style>
+
+</style>
